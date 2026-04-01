@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý lớp TSA</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+      padding: 20px;
+    }
+    .card {
+      width: 100%;
+      max-width: 780px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+      padding: 28px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      text-align: center;
+    }
+    .sub {
+      margin: 0 0 24px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .field.full {
+      grid-column: 1 / -1;
+    }
+    label {
+      font-weight: 700;
+      font-size: 14px;
+    }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      background: #fff;
+      transition: 0.2s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+    .note {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: -2px;
+    }
+    .preview-box {
+      margin-top: 20px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 16px;
+      background: #f8fafc;
+    }
+    .preview-title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #334155;
+    }
+    .preview-text {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.2s ease;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .status { margin-top: 14px; font-size: 14px; min-height: 20px; }
+    .status.success { color: #15803d; }
+    .status.error { color: #b91c1c; }
+    .status.info { color: #2563eb; }
+    .footer-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+    .hidden { display: none; }
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+      .card { padding: 20px; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Quản lý lớp TSA</h1>
+    <p class="sub">Bản local dùng JSONP để gọi Apps Script, phù hợp khi test bằng VS Code / Live Server</p>
+
+    <div class="grid">
+      <div class="field">
+        <label for="sessionNumber">Số buổi</label>
+        <input type="text" id="sessionNumber" placeholder="Ví dụ: B01 hoặc 1" />
+        <div class="note">Web sẽ tự gợi ý số buổi tiếp theo từ sheet.</div>
+      </div>
+
+      <div class="field">
+        <label for="className">Lớp học</label>
+        <input type="text" id="className" value="TSA" />
+      </div>
+
+      <div class="field">
+        <label for="subject">Môn học</label>
+        <select id="subject">
+          <option value="Toán Đại">Toán Đại</option>
+          <option value="Đọc hiểu">Đọc hiểu</option>
+          <option value="Vật Lý">Vật Lý</option>
+          <option value="Hóa Học">Hóa Học</option>
+          <option value="Sinh Học">Sinh Học</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="teacher">Thầy/Cô</label>
+        <select id="teacher"></select>
+      </div>
+
+      <div class="field">
+        <label for="dateInput">Ngày</label>
+        <input type="date" id="dateInput" />
+        <div class="note">Mặc định là ngày hôm qua theo giờ Việt Nam.</div>
+      </div>
+
+      <div class="field">
+        <label for="qll">QLL</label>
+        <select id="qll">
+          <option value="Đăng Minh">Đăng Minh</option>
+          <option value="Đăng Khoa">Đăng Khoa</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="timeSelect">Ca học</label>
+        <select id="timeSelect">
+          <option value="20h00">20h00</option>
+          <option value="21h30">21h30</option>
+          <option value="__custom__">Tự nhập...</option>
+        </select>
+      </div>
+
+      <div class="field hidden" id="customTimeWrap">
+        <label for="customTime">Nhập ca học khác</label>
+        <input type="text" id="customTime" placeholder="Ví dụ: 19h00" />
+      </div>
+
+      <div class="field full">
+        <label for="content">Nội dung buổi học</label>
+        <textarea id="content">Luyện đề</textarea>
+      </div>
+
+      <div class="field full">
+        <label for="youtubeLink">Link Youtube</label>
+        <input type="url" id="youtubeLink" placeholder="Dán link Youtube record buổi học vào đây" />
+      </div>
+    </div>
+
+    <div class="preview-box">
+      <div class="preview-title">Tên file tự động</div>
+      <p class="preview-text" id="fileNamePreview">Chưa có dữ liệu</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn-secondary" id="copyBtn" type="button">Copy tên file</button>
+      <button class="btn-primary" id="exportBtn" type="button">Export sang Google Sheets</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="footer-note">
+      Export vào sheet <strong>baocao</strong> với các cột: Date, Lớp học, Môn học, Thầy/cô, Tổng, Sĩ số lớp, Ca học, QLL, Link record buổi học (youtube), Buổi số.
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz4xhQu480PBAMwrRbmBLIHrfnZTr6jlcMu5TMEsL4t3TkIbfwhvGj4bjwZY_E8cD7Zeg/exec';
+
+    const SUBJECT_TEACHERS = {
+      "Toán Đại": ["Thầy Đỗ Xuân Thắng - Toán Đại"],
+      "Đọc hiểu": ["Thầy Nghĩa - Đọc hiểu", "Trợ giảng Phúc"],
+      "Vật Lý": ["Thầy Hậu - Vật Lý"],
+      "Hóa Học": ["Thầy Lê Xuân Đạt - Hóa Học"],
+      "Sinh Học": ["Thầy Trương Công Kiên - Sinh Học"]
+    };
+
+    const sessionNumberEl = document.getElementById('sessionNumber');
+    const classNameEl = document.getElementById('className');
+    const subjectEl = document.getElementById('subject');
+    const teacherEl = document.getElementById('teacher');
+    const dateInputEl = document.getElementById('dateInput');
+    const qllEl = document.getElementById('qll');
+    const timeSelectEl = document.getElementById('timeSelect');
+    const customTimeWrapEl = document.getElementById('customTimeWrap');
+    const customTimeEl = document.getElementById('customTime');
+    const contentEl = document.getElementById('content');
+    const youtubeLinkEl = document.getElementById('youtubeLink');
+    const fileNamePreviewEl = document.getElementById('fileNamePreview');
+    const statusEl = document.getElementById('status');
+    const copyBtn = document.getElementById('copyBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    function setStatus(message, type = 'info') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+
+    function formatSessionNumber(rawValue) {
+      const cleaned = String(rawValue || '').trim().toUpperCase();
+      if (!cleaned) return '';
+      if (/^B\d+$/.test(cleaned)) {
+        const num = parseInt(cleaned.replace('B', ''), 10);
+        return `B${String(num).padStart(2, '0')}`;
+      }
+      if (/^\d+$/.test(cleaned)) {
+        return `B${String(parseInt(cleaned, 10)).padStart(2, '0')}`;
+      }
+      return cleaned;
+    }
+
+    function normalizeTeacherForTitle(teacher) {
+      return String(teacher || '').split(' - ')[0].trim();
+    }
+
+    function getVietnamYesterdayValue() {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(new Date());
+
+      const map = {};
+      parts.forEach((part) => {
+        if (part.type !== 'literal') map[part.type] = part.value;
+      });
+
+      const base = new Date(Date.UTC(Number(map.year), Number(map.month) - 1, Number(map.day)));
+      base.setUTCDate(base.getUTCDate() - 1);
+
+      const year = base.getUTCFullYear();
+      const month = String(base.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(base.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatDateForTitle(dateValue) {
+      if (!dateValue) return '';
+      const parts = dateValue.split('-');
+      if (parts.length !== 3) return dateValue;
+      return `${parts[2]}/${parts[1]}`;
+    }
+
+    function updateTeacherOptions() {
+      const selectedSubject = subjectEl.value;
+      const teachers = SUBJECT_TEACHERS[selectedSubject] || [];
+      teacherEl.innerHTML = '';
+
+      teachers.forEach((teacher) => {
+        const option = document.createElement('option');
+        option.value = teacher;
+        option.textContent = teacher;
+        teacherEl.appendChild(option);
+      });
+
+      updatePreview();
+    }
+
+    function getClassTime() {
+      return timeSelectEl.value === '__custom__'
+        ? customTimeEl.value.trim()
+        : timeSelectEl.value;
+    }
+
+    function toggleCustomTime() {
+      const isCustom = timeSelectEl.value === '__custom__';
+      customTimeWrapEl.classList.toggle('hidden', !isCustom);
+      updatePreview();
+    }
+
+    function buildFileName() {
+      const sessionNumber = formatSessionNumber(sessionNumberEl.value);
+      const className = classNameEl.value.trim() || 'TSA';
+      const subject = subjectEl.value.trim();
+      const teacher = normalizeTeacherForTitle(teacherEl.value);
+      const content = contentEl.value.trim() || 'Luyện đề';
+      const shortDate = formatDateForTitle(dateInputEl.value);
+
+      if (!sessionNumber || !subject || !teacher || !content || !shortDate) {
+        return 'Chưa có dữ liệu';
+      }
+
+      return `${sessionNumber}-${className}.${subject} (${teacher}). ${content} (${shortDate})`;
+    }
+
+    function updatePreview() {
+      fileNamePreviewEl.textContent = buildFileName();
+    }
+
+    function getPayload() {
+      return {
+        sessionNumber: formatSessionNumber(sessionNumberEl.value),
+        className: classNameEl.value.trim() || 'TSA',
+        subject: subjectEl.value.trim(),
+        teacher: teacherEl.value.trim(),
+        date: dateInputEl.value,
+        qll: qllEl.value,
+        classTime: getClassTime(),
+        youtubeLink: youtubeLinkEl.value.trim(),
+        lessonContent: contentEl.value.trim() || 'Luyện đề'
+      };
+    }
+
+    function validatePayload(payload) {
+      if (!payload.sessionNumber) return 'Bạn chưa nhập số buổi.';
+      if (!payload.subject) return 'Bạn chưa chọn môn học.';
+      if (!payload.teacher) return 'Bạn chưa chọn thầy/cô.';
+      if (!payload.date) return 'Bạn chưa chọn ngày.';
+      if (!payload.qll) return 'Bạn chưa chọn QLL.';
+      if (!payload.classTime) return 'Bạn chưa nhập ca học.';
+      if (!payload.youtubeLink) return 'Bạn chưa nhập link Youtube.';
+      return '';
+    }
+
+    function copyFileName() {
+      const text = buildFileName();
+      if (!text || text === 'Chưa có dữ liệu') {
+        setStatus('Chưa đủ dữ liệu để copy tên file.', 'error');
+        return;
+      }
+
+      navigator.clipboard.writeText(text)
+        .then(() => setStatus('Đã copy tên file.', 'success'))
+        .catch(() => setStatus('Không copy được. Hãy copy thủ công.', 'error'));
+    }
+
+    function handleSaveSuccess(result) {
+      exportBtn.disabled = false;
+
+      if (!result || !result.success) {
+        setStatus((result && result.message) || 'Export thất bại.', 'error');
+        return;
+      }
+
+      setStatus(result.message || 'Export thành công.', 'success');
+
+      if (result.nextSessionNumber) {
+        sessionNumberEl.value = result.nextSessionNumber;
+      }
+
+      youtubeLinkEl.value = '';
+      contentEl.value = 'Luyện đề';
+      dateInputEl.value = getVietnamYesterdayValue();
+      timeSelectEl.value = '20h00';
+      customTimeEl.value = '';
+      qllEl.value = 'Đăng Minh';
+      toggleCustomTime();
+      updatePreview();
+    }
+
+    function handleSaveError(err) {
+      exportBtn.disabled = false;
+      setStatus(`Lỗi export: ${err && err.message ? err.message : err}`, 'error');
+    }
+
+    function jsonpRequest(action, params = {}) {
+      return new Promise((resolve, reject) => {
+        const callbackName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+        const script = document.createElement('script');
+        const url = new URL(WEB_APP_URL);
+
+        url.searchParams.set('action', action);
+        url.searchParams.set('prefix', callbackName);
+
+        Object.keys(params).forEach((key) => {
+          url.searchParams.set(key, params[key] ?? '');
+        });
+
+        const cleanup = () => {
+          if (window[callbackName]) delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        };
+
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Request timeout'));
+        }, 15000);
+
+        window[callbackName] = (data) => {
+          clearTimeout(timer);
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          clearTimeout(timer);
+          cleanup();
+          reject(new Error('Không gọi được Apps Script'));
+        };
+
+        script.src = url.toString();
+        document.body.appendChild(script);
+      });
+    }
+
+    async function loadInitialData() {
+      applyInitialData({
+        nextSessionNumber: 'B01',
+        defaultClassName: 'TSA',
+        defaultContent: 'Luyện đề',
+        defaultQll: 'Đăng Minh',
+        yesterdayInput: getVietnamYesterdayValue()
+      });
+
+      try {
+        const data = await jsonpRequest('init');
+        applyInitialData(data);
+        setStatus((data && data.infoMessage) || 'Sẵn sàng nhập dữ liệu.', 'success');
+      } catch (err) {
+        setStatus('Không tải được dữ liệu ban đầu. Kiểm tra lại deployment hoặc quyền truy cập Apps Script.', 'error');
+        console.error(err);
+      }
+    }
+
+    async function exportData() {
+      const payload = getPayload();
+      const error = validatePayload(payload);
+
+      if (error) {
+        setStatus(error, 'error');
+        return;
+      }
+
+      exportBtn.disabled = true;
+      setStatus('Đang export dữ liệu...', 'info');
+
+      try {
+        const result = await jsonpRequest('saveLesson', payload);
+        handleSaveSuccess(result);
+      } catch (err) {
+        handleSaveError(err);
+        console.error(err);
+      }
+    }
+
+    function applyInitialData(data) {
+      sessionNumberEl.value = (data && data.nextSessionNumber) || 'B01';
+      classNameEl.value = (data && data.defaultClassName) || 'TSA';
+      contentEl.value = (data && data.defaultContent) || 'Luyện đề';
+      qllEl.value = (data && data.defaultQll) || 'Đăng Minh';
+      dateInputEl.value = (data && data.yesterdayInput) || getVietnamYesterdayValue();
+      timeSelectEl.value = '20h00';
+      customTimeEl.value = '';
+      toggleCustomTime();
+      updateTeacherOptions();
+      updatePreview();
+    }
+
+    [
+      sessionNumberEl,
+      classNameEl,
+      subjectEl,
+      teacherEl,
+      dateInputEl,
+      qllEl,
+      timeSelectEl,
+      customTimeEl,
+      contentEl
+    ].forEach((el) => {
+      el.addEventListener('input', updatePreview);
+      el.addEventListener('change', updatePreview);
+    });
+
+    subjectEl.addEventListener('change', updateTeacherOptions);
+    timeSelectEl.addEventListener('change', toggleCustomTime);
+    copyBtn.addEventListener('click', copyFileName);
+    exportBtn.addEventListener('click', exportData);
+
+    loadInitialData();
+  </script>
+</body>
+</html>
