@@ -6,6 +6,7 @@
   <title>Quản lý lớp TSA</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -17,6 +18,7 @@
       color: #1f2937;
       padding: 20px;
     }
+
     .card {
       width: 100%;
       max-width: 780px;
@@ -25,35 +27,45 @@
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
       padding: 28px;
     }
+
     h1 {
       margin: 0 0 8px;
       font-size: 28px;
       text-align: center;
     }
+
     .sub {
       margin: 0 0 24px;
       text-align: center;
       color: #6b7280;
       font-size: 14px;
     }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
     }
+
     .field {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
+
     .field.full {
       grid-column: 1 / -1;
     }
+
     label {
       font-weight: 700;
       font-size: 14px;
     }
-    input, select, textarea, button { font: inherit; }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
     input, select, textarea {
       width: 100%;
       border: 1px solid #d1d5db;
@@ -63,19 +75,23 @@
       background: #fff;
       transition: 0.2s ease;
     }
+
     input:focus, select:focus, textarea:focus {
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
+
     textarea {
       min-height: 92px;
       resize: vertical;
     }
+
     .note {
       font-size: 12px;
       color: #6b7280;
       margin-top: -2px;
     }
+
     .preview-box {
       margin-top: 20px;
       border: 1px dashed #cbd5e1;
@@ -83,24 +99,28 @@
       padding: 16px;
       background: #f8fafc;
     }
+
     .preview-title {
       margin: 0 0 10px;
       font-size: 14px;
       font-weight: 700;
       color: #334155;
     }
+
     .preview-text {
       margin: 0;
       font-size: 16px;
       line-height: 1.5;
       word-break: break-word;
     }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       margin-top: 20px;
     }
+
     button {
       border: none;
       border-radius: 12px;
@@ -109,21 +129,46 @@
       font-weight: 700;
       transition: 0.2s ease;
     }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-secondary { background: #e5e7eb; color: #111827; }
-    .btn-secondary:hover { background: #d1d5db; }
-    .status { margin-top: 14px; font-size: 14px; min-height: 20px; }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    .status {
+      margin-top: 14px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
     .status.success { color: #15803d; }
     .status.error { color: #b91c1c; }
     .status.info { color: #2563eb; }
+
     .footer-note {
       margin-top: 12px;
       font-size: 12px;
       color: #6b7280;
       line-height: 1.5;
     }
-    .hidden { display: none; }
+
+    .hidden {
+      display: none;
+    }
+
     @media (max-width: 700px) {
       .grid { grid-template-columns: 1fr; }
       .card { padding: 20px; }
@@ -134,13 +179,20 @@
 <body>
   <div class="card">
     <h1>Quản lý lớp TSA</h1>
-    <p class="sub">Bản local dùng JSONP để gọi Apps Script, phù hợp khi test bằng VS Code / Live Server</p>
+    <p class="sub">Form đơn giản để tạo tên file và export sang Google Sheets</p>
 
     <div class="grid">
       <div class="field">
         <label for="sessionNumber">Số buổi</label>
-        <input type="text" id="sessionNumber" placeholder="Ví dụ: B01 hoặc 1" />
-        <div class="note">Web sẽ tự gợi ý số buổi tiếp theo từ sheet.</div>
+        <input
+          type="text"
+          id="sessionNumber"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          autocomplete="off"
+          placeholder="Ví dụ: 1, 2, 15"
+        />
+        <div class="note">Chỉ nhập số.</div>
       </div>
 
       <div class="field">
@@ -216,7 +268,7 @@
     <div id="status" class="status"></div>
 
     <div class="footer-note">
-      Export vào sheet <strong>baocao</strong> với các cột: Date, Lớp học, Môn học, Thầy/cô, Tổng, Sĩ số lớp, Ca học, QLL, Link record buổi học (youtube), Buổi số.
+      Export vào các cột: Date, Lớp học, Môn học, Thầy/cô, Tổng, Sĩ số lớp, Ca học, QLL, Link record buổi học (youtube), Buổi số.
     </div>
   </div>
 
@@ -252,17 +304,19 @@
       statusEl.className = `status ${type}`;
     }
 
+    function keepDigitsOnly(value) {
+      return String(value || '').replace(/\D/g, '');
+    }
+
+    function extractDigits(value) {
+      const match = String(value || '').match(/\d+/);
+      return match ? match[0] : '';
+    }
+
     function formatSessionNumber(rawValue) {
-      const cleaned = String(rawValue || '').trim().toUpperCase();
-      if (!cleaned) return '';
-      if (/^B\d+$/.test(cleaned)) {
-        const num = parseInt(cleaned.replace('B', ''), 10);
-        return `B${String(num).padStart(2, '0')}`;
-      }
-      if (/^\d+$/.test(cleaned)) {
-        return `B${String(parseInt(cleaned, 10)).padStart(2, '0')}`;
-      }
-      return cleaned;
+      const digits = keepDigitsOnly(rawValue);
+      if (!digits) return '';
+      return `B${String(parseInt(digits, 10)).padStart(2, '0')}`;
     }
 
     function normalizeTeacherForTitle(teacher) {
@@ -288,6 +342,7 @@
       const year = base.getUTCFullYear();
       const month = String(base.getUTCMonth() + 1).padStart(2, '0');
       const day = String(base.getUTCDate()).padStart(2, '0');
+
       return `${year}-${month}-${day}`;
     }
 
@@ -314,9 +369,10 @@
     }
 
     function getClassTime() {
-      return timeSelectEl.value === '__custom__'
-        ? customTimeEl.value.trim()
-        : timeSelectEl.value;
+      if (timeSelectEl.value === '__custom__') {
+        return customTimeEl.value.trim();
+      }
+      return timeSelectEl.value;
     }
 
     function toggleCustomTime() {
@@ -346,7 +402,7 @@
 
     function getPayload() {
       return {
-        sessionNumber: formatSessionNumber(sessionNumberEl.value),
+        sessionNumber: keepDigitsOnly(sessionNumberEl.value),
         className: classNameEl.value.trim() || 'TSA',
         subject: subjectEl.value.trim(),
         teacher: teacherEl.value.trim(),
@@ -381,38 +437,9 @@
         .catch(() => setStatus('Không copy được. Hãy copy thủ công.', 'error'));
     }
 
-    function handleSaveSuccess(result) {
-      exportBtn.disabled = false;
-
-      if (!result || !result.success) {
-        setStatus((result && result.message) || 'Export thất bại.', 'error');
-        return;
-      }
-
-      setStatus(result.message || 'Export thành công.', 'success');
-
-      if (result.nextSessionNumber) {
-        sessionNumberEl.value = result.nextSessionNumber;
-      }
-
-      youtubeLinkEl.value = '';
-      contentEl.value = 'Luyện đề';
-      dateInputEl.value = getVietnamYesterdayValue();
-      timeSelectEl.value = '20h00';
-      customTimeEl.value = '';
-      qllEl.value = 'Đăng Minh';
-      toggleCustomTime();
-      updatePreview();
-    }
-
-    function handleSaveError(err) {
-      exportBtn.disabled = false;
-      setStatus(`Lỗi export: ${err && err.message ? err.message : err}`, 'error');
-    }
-
-    function jsonpRequest(action, params = {}) {
+    function apiRequest(action, params = {}) {
       return new Promise((resolve, reject) => {
-        const callbackName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+        const callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
         const script = document.createElement('script');
         const url = new URL(WEB_APP_URL);
 
@@ -450,23 +477,33 @@
       });
     }
 
-    async function loadInitialData() {
-      applyInitialData({
-        nextSessionNumber: 'B01',
-        defaultClassName: 'TSA',
-        defaultContent: 'Luyện đề',
-        defaultQll: 'Đăng Minh',
-        yesterdayInput: getVietnamYesterdayValue()
-      });
+    function handleSaveSuccess(result) {
+      exportBtn.disabled = false;
 
-      try {
-        const data = await jsonpRequest('init');
-        applyInitialData(data);
-        setStatus((data && data.infoMessage) || 'Sẵn sàng nhập dữ liệu.', 'success');
-      } catch (err) {
-        setStatus('Không tải được dữ liệu ban đầu. Kiểm tra lại deployment hoặc quyền truy cập Apps Script.', 'error');
-        console.error(err);
+      if (!result || !result.success) {
+        setStatus((result && result.message) || 'Export thất bại.', 'error');
+        return;
       }
+
+      setStatus(result.message || 'Export thành công.', 'success');
+
+      if (result.nextSessionNumber) {
+        sessionNumberEl.value = extractDigits(result.nextSessionNumber);
+      }
+
+      youtubeLinkEl.value = '';
+      contentEl.value = 'Luyện đề';
+      dateInputEl.value = getVietnamYesterdayValue();
+      timeSelectEl.value = '20h00';
+      customTimeEl.value = '';
+      qllEl.value = 'Đăng Minh';
+      toggleCustomTime();
+      updatePreview();
+    }
+
+    function handleSaveError(err) {
+      exportBtn.disabled = false;
+      setStatus(`Lỗi export: ${err.message || err}`, 'error');
     }
 
     async function exportData() {
@@ -482,7 +519,7 @@
       setStatus('Đang export dữ liệu...', 'info');
 
       try {
-        const result = await jsonpRequest('saveLesson', payload);
+        const result = await apiRequest('saveLesson', payload);
         handleSaveSuccess(result);
       } catch (err) {
         handleSaveError(err);
@@ -491,7 +528,7 @@
     }
 
     function applyInitialData(data) {
-      sessionNumberEl.value = (data && data.nextSessionNumber) || 'B01';
+      sessionNumberEl.value = extractDigits((data && data.nextSessionNumber) || '1');
       classNameEl.value = (data && data.defaultClassName) || 'TSA';
       contentEl.value = (data && data.defaultContent) || 'Luyện đề';
       qllEl.value = (data && data.defaultQll) || 'Đăng Minh';
@@ -503,8 +540,42 @@
       updatePreview();
     }
 
+    async function loadInitialData() {
+      applyInitialData({
+        nextSessionNumber: '1',
+        defaultClassName: 'TSA',
+        defaultContent: 'Luyện đề',
+        defaultQll: 'Đăng Minh',
+        yesterdayInput: getVietnamYesterdayValue()
+      });
+
+      try {
+        const data = await apiRequest('init');
+        applyInitialData(data);
+        setStatus((data && data.infoMessage) || 'Sẵn sàng nhập dữ liệu.', 'success');
+      } catch (err) {
+        setStatus('Không tải được dữ liệu ban đầu. Kiểm tra lại deployment hoặc quyền truy cập Apps Script.', 'error');
+        console.error(err);
+      }
+    }
+
+    sessionNumberEl.addEventListener('input', (e) => {
+      e.target.value = keepDigitsOnly(e.target.value);
+      updatePreview();
+    });
+
+    sessionNumberEl.addEventListener('keydown', (e) => {
+      const allowedKeys = [
+        'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+        'Home', 'End'
+      ];
+
+      if (allowedKeys.includes(e.key) || (e.ctrlKey || e.metaKey)) return;
+      if (!/^\d$/.test(e.key)) e.preventDefault();
+    });
+
     [
-      sessionNumberEl,
       classNameEl,
       subjectEl,
       teacherEl,
